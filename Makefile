@@ -6,7 +6,7 @@ PDF     := $(SRC_DIR)/$(PAPER).pdf
 
 all: $(PDF)
 
-$(PDF): $(SRC_DIR)/$(PAPER).tex $(SRC_DIR)/references.bib
+$(PDF): $(SRC_DIR)/$(PAPER).tex $(SRC_DIR)/refs/references.bib
 	latexmk -pdf -cd -interaction=nonstopmode -halt-on-error $(SRC_DIR)/$(PAPER).tex
 
 watch:

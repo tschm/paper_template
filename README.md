@@ -9,7 +9,8 @@ build and automated PDF compilation on every push.
 .
 ├── paper/
 │   ├── main.tex        # the paper
-│   ├── references.bib  # bibliography
+│   ├── refs/
+│   │   └── references.bib  # bibliography
 │   └── figures/        # figures (PDF/PNG/...)
 ├── Makefile            # build / clean targets
 └── .github/workflows/  # CI that builds the PDF
