@@ -19,7 +19,7 @@
 
 # Build output
 *.pdf
-!figures/*.pdf
+!paper/figures/*.pdf
 
 # Editor / OS
 .DS_Store
