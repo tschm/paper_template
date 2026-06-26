@@ -1,0 +1,82 @@
+name: Build and publish arXiv source
+
+# Assembles a self-contained arXiv submission tarball from the LaTeX source and
+# publishes it to the `arxiv` orphan branch (which only holds submission
+# artifacts). arXiv compiles the source server-side, so we ship the main .tex,
+# the BibTeX database, the pre-built .bbl, and the figure PDFs -- not the
+# compiled PDF.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install TeX Live
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            texlive-latex-base \
+            texlive-latex-recommended \
+            texlive-latex-extra \
+            texlive-fonts-recommended \
+            texlive-publishers
+
+      - name: Assemble self-contained source
+        run: |
+          set -euo pipefail
+          rm -rf submission
+          mkdir -p submission/figures submission/refs
+          # Main source.
+          cp paper/main.tex submission/
+          # BibTeX database; \bibliography{refs/references} resolves it here.
+          cp paper/refs/references.bib submission/refs/
+          # Figure PDFs; \graphicspath{{figures/}} resolves them from the subdir.
+          # Tolerate an empty figures/ dir (template ships none yet).
+          shopt -s nullglob
+          figures=(paper/figures/*.pdf)
+          if [ ${#figures[@]} -gt 0 ]; then
+            cp "${figures[@]}" submission/figures/
+          fi
+
+      - name: Verify the source compiles standalone (and build the .bbl)
+        run: |
+          set -euo pipefail
+          # Compile a throwaway copy in arXiv-like conditions: only the bundled
+          # files. pdflatex -> bibtex -> pdflatex x2 resolves citations and refs.
+          rm -rf verify && cp -r submission verify
+          cd verify
+          pdflatex -interaction=nonstopmode -halt-on-error main.tex
+          bibtex main
+          pdflatex -interaction=nonstopmode -halt-on-error main.tex
+          pdflatex -interaction=nonstopmode -halt-on-error main.tex
+          test -f main.pdf  # fatal LaTeX errors leave no PDF
+          # Ship the generated .bbl so arXiv need not rerun BibTeX itself.
+          cp main.bbl ../submission/
+
+      - name: Create tarball
+        run: |
+          set -euo pipefail
+          mkdir -p out/arxiv
+          # Files land at the archive root (./main.tex, ./refs/..., ./figures/...),
+          # which is what arXiv expects on extraction.
+          tar czf out/arxiv/main.tar.gz -C submission .
+          tar tzf out/arxiv/main.tar.gz
+
+      - name: Publish to arxiv branch
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: arxiv
+          publish_dir: ./out
+          keep_files: true
+          commit_message: "Publish arXiv source tarball from ${{ github.sha }}"

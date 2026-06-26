@@ -25,8 +25,18 @@ make        # build paper/main.pdf
 make clean  # remove build artifacts
 ```
 
-The PDF is also built automatically by GitHub Actions on every push and is
-available as a workflow artifact (and attached to tagged releases).
+## Continuous integration
+
+Three GitHub Actions workflows run automatically:
+
+- **build.yml** — compiles the PDF on every push and pull request and uploads
+  it as a workflow artifact (also attaches it to tagged releases).
+- **build-pdf.yml** — on pushes to `main`, compiles the PDF and publishes it to
+  the `pdf` branch.
+- **arxiv.yml** — on pushes to `main`, assembles a self-contained arXiv
+  submission tarball (source `.tex`, `references.bib`, pre-built `.bbl`, and
+  figure PDFs), verifies it compiles standalone, and publishes it to the
+  `arxiv` branch.
 
 ## License
 
